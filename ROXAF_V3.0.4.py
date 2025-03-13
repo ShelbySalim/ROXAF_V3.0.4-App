@@ -212,6 +212,59 @@ def main():
                         mime="application/zip"
                     )
 
+    # Check Available Selections
+    st.subheader("Check Available Selections")
+    check_selections = st.button("Check Available Selections", key="check_selections_btn", use_container_width=True)
+    if check_selections:
+        if df_stocklot is None or df_client_needs is None:
+            st.error("Please upload both files first.")
+        else:
+            classified_needs = classify_needs_by_priority(df_client_needs)
+            if not classified_needs:
+                st.error("Error: Priority column not found in client needs file.")
+            else:
+                client_col = find_matching_column(df_client_needs.columns, ["client", "customer", "name"])
+                if not client_col:
+                    st.error("Error: Client column not found in client needs file.")
+                else:
+                    # Display client names with matching stocklots
+                    st.write("### Clients with Matching Stocklots")
+                    col1, col2 = st.columns(2)  # Split into 2 columns
+                    for priority, needs_df in classified_needs.items():
+                        client_names = needs_df[client_col].unique()
+                        for idx, client_name in enumerate(client_names):
+                            grouped_needs = group_client_needs_by_item_family(df_client_needs, client_name)
+                            if grouped_needs is None:
+                                continue
+
+                            df_filtered = filter_stocklot_for_client(df_stocklot, grouped_needs)
+                            if df_filtered is None or df_filtered.empty:
+                                continue
+
+                            # Show client name and download button
+                            if idx % 2 == 0:
+                                with col1:
+                                    st.write(f"**{client_name}** ({priority})")
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+                                        df_filtered.to_excel(tmp_file.name, index=False)
+                                        st.download_button(
+                                            label=f"Download {client_name}",
+                                            data=open(tmp_file.name, "rb").read(),
+                                            file_name=f"{client_name}-ROXAF-{priority}.xlsx",
+                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                        )
+                            else:
+                                with col2:
+                                    st.write(f"**{client_name}** ({priority})")
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+                                        df_filtered.to_excel(tmp_file.name, index=False)
+                                        st.download_button(
+                                            label=f"Download {client_name}",
+                                            data=open(tmp_file.name, "rb").read(),
+                                            file_name=f"{client_name}-ROXAF-{priority}.xlsx",
+                                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                        )
+
 # Run the app
 if __name__ == "__main__":
     main()
