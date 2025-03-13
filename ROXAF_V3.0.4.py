@@ -138,6 +138,13 @@ def main():
             df_client_needs = pd.read_excel(client_needs_file)
             st.success("Client needs file uploaded successfully!")
 
+    # Output Directory Selection
+    st.header("Output Directory")
+    output_dir = st.text_input("Enter the directory to save output files", value=str(Path.home() / "Downloads"))
+    if not os.path.exists(output_dir):
+        st.warning(f"The directory '{output_dir}' does not exist. It will be created.")
+        os.makedirs(output_dir, exist_ok=True)
+
     # Filtering Section
     st.header("Filtering Options")
 
@@ -159,9 +166,8 @@ def main():
                 if df_filtered is None or df_filtered.empty:
                     st.error(f"No matching stocklots found for {client_name}.")
                 else:
-                    # Save filtered data to Downloads folder
-                    downloads_path = str(Path.home() / "Downloads")
-                    output_file_path = os.path.join(downloads_path, f"{client_name}-ROXAF-Manual.xlsx")
+                    # Save filtered data to the specified output directory
+                    output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-Manual.xlsx")
                     df_filtered.to_excel(output_file_path, index=False)
                     st.success(f"Filtered data for {client_name} saved to {output_file_path}")
                     open_excel_file(output_file_path)
@@ -193,9 +199,8 @@ def main():
                         if df_filtered is None or df_filtered.empty:
                             continue
 
-                        # Save filtered data to Downloads folder
-                        downloads_path = str(Path.home() / "Downloads")
-                        output_file_path = os.path.join(downloads_path, f"{client_name}-ROXAF-{priority}.xlsx")
+                        # Save filtered data to the specified output directory
+                        output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-{priority}.xlsx")
                         df_filtered.to_excel(output_file_path, index=False)
                         st.success(f"Filtered data for {client_name} ({priority}) saved to {output_file_path}")
                         open_excel_file(output_file_path)
@@ -226,9 +231,8 @@ def main():
                                 if df_filtered is None or df_filtered.empty:
                                     st.error(f"No matching stocklots found for {client}.")
                                 else:
-                                    # Save filtered data to Downloads folder
-                                    downloads_path = str(Path.home() / "Downloads")
-                                    output_file_path = os.path.join(downloads_path, f"{client}-ROXAF-{priority}.xlsx")
+                                    # Save filtered data to the specified output directory
+                                    output_file_path = os.path.join(output_dir, f"{client}-ROXAF-{priority}.xlsx")
                                     df_filtered.to_excel(output_file_path, index=False)
                                     st.success(f"Filtered data for {client} saved to {output_file_path}")
                                     open_excel_file(output_file_path)
