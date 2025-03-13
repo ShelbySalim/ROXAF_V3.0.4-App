@@ -132,10 +132,6 @@ def main():
             df_client_needs = pd.read_excel(client_needs_file)
             st.success("Client needs file uploaded successfully!")
 
-    # Output Directory
-    output_dir = tempfile.mkdtemp()  # Create a temporary directory
-    st.info(f"Files will be saved to a temporary directory: {output_dir}")
-
     # Filtering Section
     st.header("Filtering Options")
 
@@ -157,16 +153,16 @@ def main():
                 if df_filtered is None or df_filtered.empty:
                     st.error(f"No matching stocklots found for {client_name}.")
                 else:
-                    # Save filtered data to the temporary directory
-                    output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-Manual.xlsx")
-                    df_filtered.to_excel(output_file_path, index=False)
-                    st.success(f"Filtered data for {client_name} saved to {output_file_path}")
-                    st.download_button(
-                        label="Download File",
-                        data=open(output_file_path, "rb").read(),
-                        file_name=f"{client_name}-ROXAF-Manual.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+                    # Save filtered data to a temporary file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+                        df_filtered.to_excel(tmp_file.name, index=False)
+                        st.success(f"Filtered data for {client_name} ready for download.")
+                        st.download_button(
+                            label="Download File",
+                            data=open(tmp_file.name, "rb").read(),
+                            file_name=f"{client_name}-ROXAF-Manual.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
 
     # Auto Filter
     st.subheader("Auto Filter")
@@ -196,19 +192,18 @@ def main():
                         if df_filtered is None or df_filtered.empty:
                             continue
 
-                        # Save filtered data to the temporary directory
-                        output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-{priority}.xlsx")
-                        df_filtered.to_excel(output_file_path, index=False)
-                        st.success(f"Filtered data for {client_name} ({priority}) saved to {output_file_path}")
-                        files_to_download.append(output_file_path)
+                        # Save filtered data to a temporary file
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
+                            df_filtered.to_excel(tmp_file.name, index=False)
+                            files_to_download.append((tmp_file.name, f"{client_name}-ROXAF-{priority}.xlsx"))
 
                 # Bulk Download Option
                 if files_to_download:
                     if st.button("Download All Files as ZIP"):
                         zip_buffer = BytesIO()
                         with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-                            for file_path in files_to_download:
-                                zip_file.write(file_path, os.path.basename(file_path))
+                            for file_path, file_name in files_to_download:
+                                zip_file.write(file_path, file_name)
                         zip_buffer.seek(0)
                         st.download_button(
                             label="Download ZIP",
