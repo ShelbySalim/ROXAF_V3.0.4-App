@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import webbrowser
 import streamlit as st
+import tempfile
 
 # Initialize Streamlit app
 st.set_page_config(page_title="ROXAF - Client Stocklot Matching", layout="wide")
@@ -140,10 +141,8 @@ def main():
 
     # Output Directory Selection
     st.header("Output Directory")
-    output_dir = st.text_input("Enter the directory to save output files", value=str(Path.home() / "Downloads"))
-    if not os.path.exists(output_dir):
-        st.warning(f"The directory '{output_dir}' does not exist. It will be created.")
-        os.makedirs(output_dir, exist_ok=True)
+    output_dir = tempfile.mkdtemp()  # Create a temporary directory
+    st.info(f"Files will be saved to a temporary directory: {output_dir}")
 
     # Filtering Section
     st.header("Filtering Options")
@@ -166,11 +165,16 @@ def main():
                 if df_filtered is None or df_filtered.empty:
                     st.error(f"No matching stocklots found for {client_name}.")
                 else:
-                    # Save filtered data to the specified output directory
+                    # Save filtered data to the temporary directory
                     output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-Manual.xlsx")
                     df_filtered.to_excel(output_file_path, index=False)
                     st.success(f"Filtered data for {client_name} saved to {output_file_path}")
-                    open_excel_file(output_file_path)
+                    st.download_button(
+                        label="Download File",
+                        data=open(output_file_path, "rb").read(),
+                        file_name=f"{client_name}-ROXAF-Manual.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    )
 
     # Auto Filter
     st.subheader("Auto Filter")
@@ -199,11 +203,16 @@ def main():
                         if df_filtered is None or df_filtered.empty:
                             continue
 
-                        # Save filtered data to the specified output directory
+                        # Save filtered data to the temporary directory
                         output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-{priority}.xlsx")
                         df_filtered.to_excel(output_file_path, index=False)
                         st.success(f"Filtered data for {client_name} ({priority}) saved to {output_file_path}")
-                        open_excel_file(output_file_path)
+                        st.download_button(
+                            label=f"Download {client_name}-ROXAF-{priority}.xlsx",
+                            data=open(output_file_path, "rb").read(),
+                            file_name=f"{client_name}-ROXAF-{priority}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
 
     # Recommended Client List (Toggle Heading)
     with st.expander("Show Recommended List"):
@@ -231,11 +240,16 @@ def main():
                                 if df_filtered is None or df_filtered.empty:
                                     st.error(f"No matching stocklots found for {client}.")
                                 else:
-                                    # Save filtered data to the specified output directory
+                                    # Save filtered data to the temporary directory
                                     output_file_path = os.path.join(output_dir, f"{client}-ROXAF-{priority}.xlsx")
                                     df_filtered.to_excel(output_file_path, index=False)
                                     st.success(f"Filtered data for {client} saved to {output_file_path}")
-                                    open_excel_file(output_file_path)
+                                    st.download_button(
+                                        label=f"Download {client}-ROXAF-{priority}.xlsx",
+                                        data=open(output_file_path, "rb").read(),
+                                        file_name=f"{client}-ROXAF-{priority}.xlsx",
+                                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    )
 
     # Suspend and Reload
     st.subheader("System Controls")
