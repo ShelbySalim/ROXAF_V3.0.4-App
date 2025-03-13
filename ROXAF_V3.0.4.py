@@ -4,6 +4,7 @@ import streamlit as st
 import tempfile
 import zipfile
 from io import BytesIO
+import time  # For measuring operation duration
 
 # Initialize Streamlit app
 st.set_page_config(page_title="ROXAF - Client Stocklot Matching", layout="wide")
@@ -145,6 +146,7 @@ def main():
         elif not client_name:
             st.error("Please enter a client name.")
         else:
+            start_time = time.time()  # Start timing
             grouped_needs = group_client_needs_by_item_family(df_client_needs, client_name)
             if grouped_needs is None:
                 st.error(f"No needs found for {client_name}.")
@@ -163,6 +165,8 @@ def main():
                             file_name=f"{client_name}-ROXAF-Manual.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+            end_time = time.time()  # End timing
+            st.write(f"Operation duration: **{(end_time - start_time) * 1000:.2f} ms**")
 
     # Auto Filter
     st.subheader("Auto Filter")
@@ -171,6 +175,7 @@ def main():
         if df_stocklot is None or df_client_needs is None:
             st.error("Please upload both files first.")
         else:
+            start_time = time.time()  # Start timing
             classified_needs = classify_needs_by_priority(df_client_needs)
             if not classified_needs:
                 st.error("Error: Priority column not found in client needs file.")
@@ -211,14 +216,19 @@ def main():
                         file_name="Filtered_Files.zip",
                         mime="application/zip"
                     )
+            end_time = time.time()  # End timing
+            st.write(f"Operation duration: **{(end_time - start_time) * 1000:.2f} ms**")
 
     # Check Available Selections
     st.subheader("Check Available Selections")
+    if stocklot_file:
+        st.write(f"Check Available Selections from list **{stocklot_file.name}**")
     check_selections = st.button("Check Available Selections", key="check_selections_btn", use_container_width=True)
     if check_selections:
         if df_stocklot is None or df_client_needs is None:
             st.error("Please upload both files first.")
         else:
+            start_time = time.time()  # Start timing
             classified_needs = classify_needs_by_priority(df_client_needs)
             if not classified_needs:
                 st.error("Error: Priority column not found in client needs file.")
@@ -264,6 +274,8 @@ def main():
                                             file_name=f"{client_name}-ROXAF-{priority}.xlsx",
                                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                                         )
+            end_time = time.time()  # End timing
+            st.write(f"Operation duration: **{(end_time - start_time) * 1000:.2f} ms**")
 
 # Run the app
 if __name__ == "__main__":
