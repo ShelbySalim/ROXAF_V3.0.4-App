@@ -196,21 +196,21 @@ def main():
                         with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
                             df_filtered.to_excel(tmp_file.name, index=False)
                             files_to_download.append((tmp_file.name, f"{client_name}-ROXAF-{priority}.xlsx"))
+                            st.success(f"Filtered data for {client_name} ({priority}) ready for download.")
 
                 # Bulk Download Option
                 if files_to_download:
-                    if st.button("Download All Files as ZIP"):
-                        zip_buffer = BytesIO()
-                        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-                            for file_path, file_name in files_to_download:
-                                zip_file.write(file_path, file_name)
-                        zip_buffer.seek(0)
-                        st.download_button(
-                            label="Download ZIP",
-                            data=zip_buffer,
-                            file_name="Filtered_Files.zip",
-                            mime="application/zip"
-                        )
+                    zip_buffer = BytesIO()
+                    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                        for file_path, file_name in files_to_download:
+                            zip_file.write(file_path, file_name)
+                    zip_buffer.seek(0)
+                    st.download_button(
+                        label="Download All Files as ZIP",
+                        data=zip_buffer,
+                        file_name="Filtered_Files.zip",
+                        mime="application/zip"
+                    )
 
 # Run the app
 if __name__ == "__main__":
