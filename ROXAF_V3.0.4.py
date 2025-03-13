@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 from pathlib import Path
-import webbrowser
 import streamlit as st
 import tempfile
 
@@ -113,11 +112,6 @@ def classify_needs_by_priority(df):
     except Exception as e:
         st.error(f"Error classifying needs by priority: {e}")
         return None
-
-def open_excel_file(file_path):
-    """Open an Excel file automatically."""
-    if os.path.exists(file_path):
-        webbrowser.open(file_path)
 
 # Streamlit app
 def main():
