@@ -1,8 +1,9 @@
 import os
 import pandas as pd
-from pathlib import Path
 import streamlit as st
 import tempfile
+import zipfile
+from io import BytesIO
 
 # Initialize Streamlit app
 st.set_page_config(page_title="ROXAF - Client Stocklot Matching", layout="wide")
@@ -10,8 +11,6 @@ st.set_page_config(page_title="ROXAF - Client Stocklot Matching", layout="wide")
 # Global variables
 df_stocklot = None
 df_client_needs = None
-suspend_process = False
-recommended_clients = []
 
 # Helper functions
 def find_matching_column(df_columns, keywords):
@@ -115,7 +114,7 @@ def classify_needs_by_priority(df):
 
 # Streamlit app
 def main():
-    global df_stocklot, df_client_needs, suspend_process, recommended_clients
+    global df_stocklot, df_client_needs
 
     st.title("ROXAF - Client Stocklot Matching")
 
@@ -133,8 +132,7 @@ def main():
             df_client_needs = pd.read_excel(client_needs_file)
             st.success("Client needs file uploaded successfully!")
 
-    # Output Directory Selection
-    st.header("Output Directory")
+    # Output Directory
     output_dir = tempfile.mkdtemp()  # Create a temporary directory
     st.info(f"Files will be saved to a temporary directory: {output_dir}")
 
@@ -181,6 +179,7 @@ def main():
             if not classified_needs:
                 st.error("Error: Priority column not found in client needs file.")
             else:
+                files_to_download = []
                 for priority, needs_df in classified_needs.items():
                     client_col = find_matching_column(df_client_needs.columns, ["client", "customer", "name"])
                     if not client_col:
@@ -201,66 +200,22 @@ def main():
                         output_file_path = os.path.join(output_dir, f"{client_name}-ROXAF-{priority}.xlsx")
                         df_filtered.to_excel(output_file_path, index=False)
                         st.success(f"Filtered data for {client_name} ({priority}) saved to {output_file_path}")
+                        files_to_download.append(output_file_path)
+
+                # Bulk Download Option
+                if files_to_download:
+                    if st.button("Download All Files as ZIP"):
+                        zip_buffer = BytesIO()
+                        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+                            for file_path in files_to_download:
+                                zip_file.write(file_path, os.path.basename(file_path))
+                        zip_buffer.seek(0)
                         st.download_button(
-                            label=f"Download {client_name}-ROXAF-{priority}.xlsx",
-                            data=open(output_file_path, "rb").read(),
-                            file_name=f"{client_name}-ROXAF-{priority}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            label="Download ZIP",
+                            data=zip_buffer,
+                            file_name="Filtered_Files.zip",
+                            mime="application/zip"
                         )
-
-    # Recommended Client List (Toggle Heading)
-    with st.expander("Show Recommended List"):
-        if df_stocklot is not None and df_client_needs is not None:
-            client_col = find_matching_column(df_client_needs.columns, ["client", "customer", "name"])
-            if client_col:
-                classified_needs = classify_needs_by_priority(df_client_needs)
-                if classified_needs:
-                    recommended_clients = []
-                    for priority, needs_df in classified_needs.items():
-                        client_names = needs_df[client_col].unique()
-                        for client_name in client_names:
-                            recommended_clients.append((client_name, priority))
-
-                    # Display recommended clients as buttons in 3 columns
-                    st.subheader("Recommended Clients")
-                    cols = st.columns(3)  # Display 3 columns
-                    for idx, (client, priority) in enumerate(recommended_clients):
-                        if cols[idx % 3].button(f"{client} ({priority})", key=f"btn_{client}_{priority}", use_container_width=True):
-                            grouped_needs = group_client_needs_by_item_family(df_client_needs, client)
-                            if grouped_needs is None:
-                                st.error(f"No needs found for {client}.")
-                            else:
-                                df_filtered = filter_stocklot_for_client(df_stocklot, grouped_needs)
-                                if df_filtered is None or df_filtered.empty:
-                                    st.error(f"No matching stocklots found for {client}.")
-                                else:
-                                    # Save filtered data to the temporary directory
-                                    output_file_path = os.path.join(output_dir, f"{client}-ROXAF-{priority}.xlsx")
-                                    df_filtered.to_excel(output_file_path, index=False)
-                                    st.success(f"Filtered data for {client} saved to {output_file_path}")
-                                    st.download_button(
-                                        label=f"Download {client}-ROXAF-{priority}.xlsx",
-                                        data=open(output_file_path, "rb").read(),
-                                        file_name=f"{client}-ROXAF-{priority}.xlsx",
-                                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                                    )
-
-    # Suspend and Reload
-    st.subheader("System Controls")
-    col1, col2 = st.columns(2)  # Split into 2 columns
-    with col1:
-        suspend = st.button("Suspend Auto Filter", key="suspend_btn", use_container_width=True)
-        if suspend:
-            suspend_process = True
-            st.warning("Auto-filtering process suspended.")
-    with col2:
-        reload = st.button("Reload", key="reload_btn", use_container_width=True)
-        if reload:
-            df_stocklot = None
-            df_client_needs = None
-            suspend_process = False
-            recommended_clients = []
-            st.success("App reloaded. You can start a new process.")
 
 # Run the app
 if __name__ == "__main__":
